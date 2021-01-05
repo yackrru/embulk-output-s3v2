@@ -1,0 +1,103 @@
+plugins {
+    id 'com.github.jruby-gradle.base' version '2.0.0'
+    id 'checkstyle'
+    id 'java'
+}
+import com.github.jrubygradle.JRubyExec
+
+group 'com.github.ttksm'
+version '0.1.0'
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+repositories {
+    mavenCentral()
+    jcenter()
+}
+
+configurations {
+    provided
+}
+
+dependencies {
+    compile 'org.embulk:embulk-core:0.9.23'
+    provided 'org.embulk:embulk-core:0.9.23'
+    compile 'software.amazon.awssdk:s3:2.+'
+    testCompile 'org.junit.jupiter:junit-jupiter:5.+'
+    testCompile 'org.mockito:mockito-core:3.+'
+    testCompile 'org.mockito:mockito-junit-jupiter:3.+'
+    testCompile 'org.embulk:embulk-core:0.9.23:tests'
+}
+
+test {
+    useJUnitPlatform()
+}
+
+tasks.withType(JavaCompile) {
+    options.compilerArgs << '-Xlint:unchecked'
+    options.encoding = 'UTF-8'
+}
+
+task classpath(type: Copy, dependsOn: 'jar') {
+    doFirst {
+        file('classpath').deleteDir()
+    }
+    from (configurations.runtime - configurations.provided + files(jar.archivePath))
+    into 'classpath'
+}
+clean {
+    delete 'classpath'
+}
+
+checkstyle {
+    configFile = file("${project.rootDir}/config/checkstyle/checkstyle.xml")
+    toolVersion = '6.14.1'
+}
+checkstyleMain {
+    configFile = file("${project.rootDir}/config/checkstyle/default.xml")
+    ignoreFailures = true
+}
+checkstyleTest {
+    configFile = file("${project.rootDir}/config/checkstyle/default.xml")
+    ignoreFailures = true
+}
+task checkstyle(type: Checkstyle) {
+    classpath = sourceSets.main.output + sourceSets.test.output
+    source = sourceSets.main.allJava + sourceSets.test.allJava
+}
+
+task gem(type: JRubyExec, dependsOn: ['build', 'gemspec', 'classpath']) {
+    jrubyArgs '-S'
+    script 'gem'
+    scriptArgs 'build', 'build/gemspec'
+    doLast {
+        if (!version.endsWith('-SNAPSHOT')) {
+            copy {
+                from "${project.name}-${project.version}.gem"
+                into 'pkg'
+            }
+        }
+    }
+}
+
+task gemspec {
+    doLast {
+        file('build/gemspec').write($/
+Gem::Specification.new do |spec|
+  spec.name          = "${project.name}"
+  spec.version       = "${project.version}"
+  spec.authors       = ['Toshihiro Takushima']
+  spec.summary       = %[Amazon S3 output plugin for Embulk]
+  spec.description   = %[Stores files on Amazon S3 using aws-sdk-java-v2.]
+  spec.email         = ['ttksm.git@gmail.com']
+  spec.licenses      = ['MIT']
+  spec.homepage      = 'https://github.com/ttksm/embulk-output-s3v2'
+
+  spec.files         = `git ls-files`.split("\n") + Dir['classpath/*.jar']
+  spec.test_files    = spec.files.grep(%r'^(test|spec)/')
+  spec.require_paths = ['lib']
+end
+/$)
+    }
+}
