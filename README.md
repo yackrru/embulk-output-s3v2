@@ -1,4 +1,7 @@
 # Amazon S3 output plugin for Embulk
+![](https://github.com/ttksm/embulk-output-s3v2/workflows/Java%20CI%20with%20Gradle/badge.svg)
+![](https://github.com/ttksm/embulk-output-s3v2/workflows/Release%20gem/badge.svg)
+<br>
 embulk-output-s3v2 is a plugin for Embulk, which based on [aws-sdk-java-v2](https://github.com/aws/aws-sdk-java-v2).
 Files stores on Amazon S3.
 
