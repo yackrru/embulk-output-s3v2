@@ -13,7 +13,7 @@ abstract class AbstractStrategy implements TransactionalFileOutput
 
     public AbstractStrategy(PluginTask task, int taskIndex)
     {
-        s3 = new S3ClientManager(task.getRegion());
+        s3 = new S3ClientManager(task.getRegion(), task.getEnableProfile(), task.getProfile());
         this.task = task;
         this.taskIndex = taskIndex;
 

@@ -16,9 +16,13 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import org.embulk.output.s3v2.util.ChunksizeComputation;
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
+import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
+import software.amazon.awssdk.auth.credentials.ProfileCredentialsProvider;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.S3ClientBuilder;
 import software.amazon.awssdk.services.s3.model.AbortMultipartUploadRequest;
 import software.amazon.awssdk.services.s3.model.CompleteMultipartUploadRequest;
 import software.amazon.awssdk.services.s3.model.CompletedMultipartUpload;
@@ -37,16 +41,26 @@ public class S3ClientManager
 {
     private final S3Client s3;
 
-    public S3ClientManager(String regionName)
+    public S3ClientManager(String regionName, boolean enableProfile, String profileName)
     {
+        S3ClientBuilder builder = S3Client.builder();
+
         Region region = Region.of(regionName);
         if (Region.regions().stream().noneMatch(o -> o.equals(region))) {
             throw new IllegalArgumentException("Not found aws region: " + regionName);
         }
+        builder = builder.region(region);
 
-        s3 = S3Client.builder()
-                .region(region)
-                .build();
+        AwsCredentialsProvider provider;
+        if (enableProfile) {
+            provider = ProfileCredentialsProvider.create(profileName);
+        }
+        else {
+            provider = DefaultCredentialsProvider.builder().profileName("").build();
+        }
+        builder = builder.credentialsProvider(provider);
+
+        s3 = builder.build();
     }
 
     /**
