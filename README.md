@@ -15,7 +15,7 @@ Files stores on Amazon S3.
 - **region**: AWS region name. (string, required)
 - **enable_profile**: If true, AWS credentials profile will be used when authenticating AWS. (boolean, default: `false`)
   - Supported in v0.2.0 or later
-- **profile**: AWS credentials profile name. If `enable_profile` is false, this parameter will be ignored.
+- **profile**: AWS credentials profile name. If `enable_profile` is false, this parameter will be ignored. (string, default: `default`)
   - Supported in v0.2.0 or later
 - **bucket**: S3 bucket name. (string, required)
 - **object_key_prefix**: Prefix of S3 Objects key name. (string, required)
