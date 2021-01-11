@@ -10,6 +10,14 @@ public interface PluginTask
     @Config("region")
     public String getRegion();
 
+    @Config("enable_profile")
+    @ConfigDefault("false")
+    public boolean getEnableProfile();
+
+    @Config("profile")
+    @ConfigDefault("\"default\"")
+    public String getProfile();
+
     @Config("bucket")
     public String getBucket();
 
