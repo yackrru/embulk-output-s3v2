@@ -13,7 +13,7 @@ Files stores on Amazon S3.
 
 ## Configuration
 - **region**: AWS region name. (string, required)
-- **enable_profile**: If true, AWS credentials profile will be used when authenticating AWS. (boolean, default: `false`)
+- **enable_profile**: If true, AWS credentials profile will be used when authenticating AWS. If false, IamRole will be used. (boolean, default: `false`)
   - Supported in v0.2.0 or later
 - **profile**: AWS credentials profile name. If `enable_profile` is false, this parameter will be ignored. (string, default: `default`)
   - Supported in v0.2.0 or later
@@ -27,7 +27,7 @@ Files stores on Amazon S3.
   - Maximum size: `2GB`
   - Enable semantics
     - Same as that of `multipart_threshold`
-- **multipart_threshold**: If `enable_multi_part_upload` is false, this parameter will be ignored. (string, default: `8MB`)
+- **multipart_threshold**: The size threshold the plugin uses for multipart transfers of individual divided bulk-data. If `enable_multi_part_upload` is false, this parameter will be ignored. (string, default: `8MB`)
   - Enable semantics
     - `KB`
     - `MB`
