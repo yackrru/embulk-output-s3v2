@@ -38,6 +38,7 @@ Files stores on Amazon S3.
 - **temp_path**: Directory for temp file output. (string, default: `/tmp`)
 - **temp_file_prefix**: Prefix of temp file name. (string, default: `embulk-output-s3v2`)
 ### Example
+#### Basic sample with IAMRole authentication
 ```yaml
 out:
   type: s3v2
@@ -49,6 +50,40 @@ out:
   formatter:
     type: csv
     delimeter: ","
+```
+#### Basic sample with Credentials-Profile authentication
+```yaml
+out:
+  type: s3v2
+  region: ap-northeast-1
+  bucket: s3-bucket-name
+  object_key_prefix: embulk/embulk-output-s3v2
+  temp_path: /tmp
+  enable_profile: true
+  profile: default
+  extension: .csv
+  formatter:
+    type: csv
+    delimeter: ","
+```
+#### Multipart Upload Sample with gzip encode
+```yaml
+out:
+  type: s3v2
+  region: ap-northeast-1
+  bucket: s3-bucket-name
+  object_key_prefix: embulk/embulk-output-s3v2
+  temp_path: /tmp
+  enable_multi_part_upload: true
+  multipart_chunksize: 10MB
+  max_concurrent_requests: 20
+  extension: csv.gz
+  formatter:
+    type: csv
+    delimeter: ","
+  encoders:
+  - type: gzip
+    level: 1
 ```
 
 ## Usage

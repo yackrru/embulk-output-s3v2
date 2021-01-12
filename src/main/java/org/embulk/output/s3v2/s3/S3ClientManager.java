@@ -1,13 +1,11 @@
 package org.embulk.output.s3v2.s3;
 
-import java.io.BufferedOutputStream;
-import java.io.FileOutputStream;
+import java.io.BufferedInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.channels.FileChannel;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -91,26 +89,23 @@ public class S3ClientManager
         CreateMultipartUploadResponse response = s3.createMultipartUpload(createMultipartUploadRequest);
         String uploadId = response.uploadId();
 
-        try (FileChannel fc = FileChannel.open(sourceFile)) {
-            String multipartChunksize = status.getMultipartChunksize();
-            ByteBuffer buffer = ByteBuffer.allocate(ChunksizeComputation.getChunksizeBytes(multipartChunksize));
-
+        try (BufferedInputStream bufferStream = new BufferedInputStream(
+                new FileInputStream(sourceFile.toFile()))) {
             ExecutorService es = Executors.newFixedThreadPool(status.getMaxConcurrentRequests());
             List<CompletableFuture<String>> futureList = new ArrayList<>();
+
+            int multipartChunksize = ChunksizeComputation.getChunksizeBytes(status.getMultipartChunksize());
+            byte[] data = new byte[multipartChunksize];
             int i = 1;
             while (true) {
-                buffer.clear();
-                if (fc.read(buffer) == -1) {
+                int n = bufferStream.read(data);
+                if (n == -1) {
                     break;
                 }
-                buffer.flip();
 
-                // Create tmpFile per size of multipart_chunksize
-                String tmpFile = sourceFile + "_" + i;
-                try (BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(tmpFile))) {
-                    bos.write(buffer.array(), buffer.arrayOffset(), buffer.limit());
-                    bos.flush();
-                }
+                ByteArrayOutputStream out = new ByteArrayOutputStream();
+                out.write(data, 0, n);
+                byte[] chunk = out.toByteArray();
 
                 UploadPartRequest uploadPartRequest = UploadPartRequest.builder()
                         .bucket(bucket).key(objectKey).uploadId(uploadId)
@@ -119,7 +114,7 @@ public class S3ClientManager
 
                 // Async upload to S3
                 CompletableFuture<String> future = CompletableFuture.supplyAsync(() -> {
-                    return s3.uploadPart(uploadPartRequest, RequestBody.fromFile(Paths.get(tmpFile))).eTag();
+                    return s3.uploadPart(uploadPartRequest, RequestBody.fromBytes(chunk)).eTag();
                 }, es);
                 futureList.add(future);
 
@@ -131,8 +126,6 @@ public class S3ClientManager
             for (int j = 1; j <= futureList.size(); j++) {
                 CompletedPart part = CompletedPart.builder().partNumber(j).eTag(futureList.get(j - 1).get()).build();
                 partList.add(part);
-                // Remove tmpFile
-                Files.delete(Paths.get(sourceFile + "_" + j));
             }
 
             CompletedMultipartUpload completedMultipartUpload = CompletedMultipartUpload.builder()
